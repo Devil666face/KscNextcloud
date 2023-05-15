@@ -1,0 +1,10 @@
+/pkg
+/venv
+__pycache__
+/python
+.env
+/database.db
+/dump.csv
+*.log
+/dist
+/README.md
