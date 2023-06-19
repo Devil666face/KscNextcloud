@@ -12,6 +12,7 @@ def export_in_csv(file_name: str) -> None:
             user.user_type,
             user.is_user_already_make,
             user.ksc_last_date,
+            user.nextcloud_last_date,
         ]
         for user in user_list
     ]
