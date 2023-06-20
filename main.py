@@ -8,19 +8,26 @@ from models.models import (
 )
 from utils.logger import logger
 from utils.handler import args
-from utils.dump import export_in_csv
+from utils.dump import (
+    export_in_csv,
+    daily_report,
+)
 from utils.exec import timer
 from api.server import (
     KscServer,
     KscRawData,
 )
 from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.schedulers.background import BackgroundScheduler
 
 load_dotenv()
+
+default_report_path = os.getenv("REPORT_PATH", "/var/www/nextcloud/data/32pus/files")
 
 
 @timer
 def iter():
+    logger.info("Start to make users")
     User.get_user_list_from_cloud.cache_clear()
     server = KscServer(
         ip=os.getenv("IP", "10.94.177.129"),
@@ -66,10 +73,20 @@ if __name__ == "__main__":
         logger.info("Exec only one iteration")
         iter()
     elif args.daemon:
-        logger.info("Exec in every 30 min daemon mode")
         scheduler = BlockingScheduler()
+        background_scheduler = BackgroundScheduler()
+        logger.info("Exec in every 60 min daemon mode")
         scheduler.add_job(iter, "interval", minutes=60)
+        background_scheduler.add_job(
+            daily_report, "interval", hours=12, args=[default_report_path]
+        )
         iter()
+        background_scheduler.start()
         scheduler.start()
+    elif args.report:
+        logger.info(
+            f"Make today report with last connection dates in {default_report_path}"
+        )
+        daily_report(default_report_path)
     else:
         logger.error("You dont add options use -h/--help for have info")

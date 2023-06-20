@@ -15,6 +15,7 @@ def timer(func):
             result = func(*args, **kwargs)
         except KeyboardInterrupt:
             logger.info("Exit from keyboard")
+            exit(0)
         end_time = perf_counter()
         logger.debug(f"Iteration time {end_time - start_time:.07f} seconds")
         return result

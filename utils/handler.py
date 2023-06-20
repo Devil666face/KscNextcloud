@@ -14,5 +14,11 @@ parser.add_argument(
     help="make one iteration for make users from KSC",
     action="store_true",
 )
+parser.add_argument(
+    "-t",
+    "--report",
+    help="make report with last connection dates",
+    action="store_true",
+)
 
 args = parser.parse_args()
