@@ -9,7 +9,6 @@
 
 ```bash
 cd /opt
-sudo wget https://git.dev.ap17.mil.ru/av.kalinkin/KscNextcloud/uploads/18ce463dcc4a1ab7c2f62d2e4477c099/KscNextcloud.tgz
 sudo tar -xf KscNextcloud.tgz && sudo rm KscNextcloud.tgz
 chmod +x KscNextcloud/main.bin
 cp KscNextcloud/kscnextcloud.service /etc/systemd/system/
