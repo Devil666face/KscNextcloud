@@ -1,0 +1,75 @@
+# FROM debian:10
+# RUN apt-get update -y && \
+#     apt-get install -y \
+#       gcc make patchelf wget tar git libsqlite3-0 openssl ca-certificates
+# RUN git config --global http.sslVerify "false"
+# RUN openssl s_client -showcerts -verify 5 -connect git.dev.ap17.mil.ru:443 < /dev/null 2>/dev/null | openssl x509 -outform PEM | tee gitlab.crt && cp gitlab.crt /usr/local/share/ca-certificates/
+# RUN openssl s_client -showcerts -verify 5 -connect registry.dev.ap17.mil.ru:443 < /dev/null 2>/dev/null | openssl x509 -outform PEM | tee docker.crt && cp docker.crt /usr/local/share/ca-certificates/
+# RUN update-ca-certificates
+# ENV http_proxy="http://proxy01.ap17.mil.ru:2270"
+# ENV https_proxy="http://proxy01.ap17.mil.ru:2270"
+
+.default_rules:
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: manual
+
+stages:       
+  - build
+  - release
+
+build:
+  stage: build
+  rules:
+    - !reference [.default_rules, rules]
+  image: registry.dev.ap17.mil.ru/docker-images/debian10-python-nuitka:latest
+# image: debian:10
+  tags:
+    - avz-runner-1
+  variables:
+    PREVIOUS_JOB_ID: "${CI_JOB_ID}"
+  script:
+    - mkdir -p ./dist && touch ./dist/build.env
+    - echo "RELEASE_TAG=$(date +v%m.%d.%H.%M)" >> ./dist/build.env
+    - echo "PREVIOUS_JOB_ID=$PREVIOUS_JOB_ID" >> ./dist/build.env
+    - .dev/init.sh
+    - ./venv/bin/pip install nuitka
+    - .dev/build.sh
+  artifacts:
+    name: "Get artifacts for $CI_COMMIT_SHORT_SHA"
+    paths: 
+      - ./dist/
+    reports:
+      dotenv: ./dist/build.env
+  allow_failure: false
+
+# FROM registry.gitlab.com/gitlab-org/release-cli
+# RUN apk --no-cache add openssl ca-certificates
+# RUN openssl s_client -showcerts -verify 5 -connect git.dev.ap17.mil.ru:443 < /dev/null 2>/dev/null | openssl x509 -outform PEM | tee gitlab.crt && cp gitlab.crt /usr/local/share/ca-certificates/
+# RUN openssl s_client -showcerts -verify 5 -connect registry.dev.ap17.mil.ru:443 < /dev/null 2>/dev/null | openssl x509 -outform PEM | tee docker.crt && cp docker.crt /usr/local/share/ca-certificates/
+# RUN update-ca-certificates
+
+release:
+  stage: release
+  rules:
+    - !reference [.default_rules, rules]
+  image: registry.dev.ap17.mil.ru/docker-images/release-cli:latest
+  # image: registry.gitlab.com/gitlab-org/release-cli:latest
+  tags:
+    - avz-runner-1
+  needs:
+    - job: build
+      artifacts: true
+  variables:
+    RELEASE_FILE_NAME: "${CI_PROJECT_NAME}.tgz"
+    RELEASE_URL: "${CI_PROJECT_URL}/-/jobs/${PREVIOUS_JOB_ID}/artifacts/file/dist/${RELEASE_FILE_NAME}"
+  script:
+    - echo "$RELEASE_URL"
+  release:
+    name: "${RELEASE_TAG}"
+    description: "Created using the release-cli"
+    tag_name: "${RELEASE_TAG}"
+    assets:
+      links:
+        - name: "${RELEASE_FILE_NAME}"
+          url: "${RELEASE_URL}"
