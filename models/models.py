@@ -36,6 +36,7 @@ db = SqliteDatabase("database.db")
 class User(Model):
     class ComputerType(Enum):
         AQUARIUS = "Aquarius Cmp"
+        XIAOMI = "Xiaomi"
         OBT = "OBT"
         HIGHTON = "HightonElectronics"
         MIG = "MIG"
